@@ -3,122 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Quote Generator with Filtering</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        
-        .container { max-width: 800px; margin: 0 auto; }
-        
-        h1 { margin-bottom: 20px; color: #333; }
-        
-        .filter-section { margin: 20px 0; }
-        
-        select {
-            padding: 10px;
-            border: 2px solid #667eea;
-            border-radius: 5px;
-            font-size: 16px;
-            margin-right: 10px;
-        }
-        
-        .quote-section {
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-        
-        .quote-item {
-            background: white;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .no-results {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-        
-        button {
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
-        }
-        
-        button:hover { background: #5a67d8; }
-        
-        .delete-btn {
-            background: #e53e3e;
-            padding: 5px 10px;
-            font-size: 12px;
-        }
-        
-        .add-quote-form {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .add-quote-form.active { display: block; }
-        
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0 15px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-    </style>
+    <title>Dynamic Quote Generator</title>
 </head>
 <body>
-    <div class="container">
-        <h1>Dynamic Quote Generator</h1>
-        
-        <!-- Filter Section -->
-        <div class="filter-section">
-            <select id="categoryFilter" onchange="filterQuotes()">
-                <option value="all">All Categories</option>
-                <!-- Categories will be populated by populateCategories() -->
-            </select>
-        </div>
-        
-        <!-- Quote Display -->
-        <div class="quote-section">
-            <div id="quoteDisplay">
-                <!-- Random quote will appear here -->
-            </div>
-        </div>
-        
-        <!-- Controls -->
-        <div>
-            <button id="newQuote">Show Random Quote</button>
-            <button id="toggleForm">Add New Quote</button>
-        </div>
-        
-        <!-- Add Quote Form -->
-        <div id="addQuoteForm" class="add-quote-form">
-            <input type="text" id="newQuoteText" placeholder="Enter quote text...">
-            <input type="text" id="newQuoteCategory" placeholder="Enter category...">
-            <button id="addQuote">Add Quote</button>
-        </div>
-        
-        <!-- Quotes List -->
-        <h2>All Quotes (<span id="quoteCount">0</span>)</h2>
-        <div id="quotesContainer">
-            <!-- Quotes will be listed here -->
-        </div>
+    <h1>Dynamic Quote Generator</h1>
+    
+    <select id="categoryFilter" onchange="filterQuotes()">
+        <option value="all">All Categories</option>
+    </select>
+    
+    <div id="quoteDisplay"></div>
+    <button onclick="showRandomQuote()">New Quote</button>
+    <button onclick="toggleForm()">Add Quote</button>
+    
+    <div id="addQuoteForm" style="display:none;">
+        <input type="text" id="newQuoteText" placeholder="Quote">
+        <input type="text" id="newQuoteCategory" placeholder="Category">
+        <button onclick="addQuote()">Add</button>
     </div>
     
-    <script src="script.js"></script>
+    <div id="quotesContainer"></div>
+    
+    <script>
+        // Global variables
+        let quotes = [];
+        
+        // Load quotes from localStorage
+        function loadQuotes() {
+            const stored = localStorage.getItem('quotes');
+            if (stored) {
+                quotes = JSON.parse(stored);
+            } else {
+                quotes = [
+                    { text: "Quote 1", category: "Inspiration" },
+                    { text: "Quote 2", category: "Life" },
+                    { text: "Quote 3", category: "Inspiration" }
+                ];
+                localStorage.setItem('quotes', JSON.stringify(quotes));
+            }
+        }
+        
+        // REQUIRED FUNCTION 1: populateCategories
+        function populateCategories() {
+            // Extract unique categories
+            const categories = [];
+            quotes.forEach(quote => {
+                if (!categories.includes(quote.category)) {
+                    categories.push(quote.category);
+                }
+            });
+            
+            // Populate dropdown
+            const dropdown = document.getElementById('categoryFilter');
+            if (!dropdown) return;
+            
+            // Clear existing options (keep "All Categories")
+            while (dropdown.options.length > 1) {
+                dropdown.remove(1);
+            }
+            
+            // Add categories
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                dropdown.appendChild(option);
+            });
+        }
+        
+        // REQUIRED FUNCTION 2: filterQuotes
+        function filterQuotes() {
+            const dropdown = document.getElementById('categoryFilter');
+            if (!dropdown) return;
+            
+            const selectedCategory = dropdown.value;
+            
+            // Save to localStorage
+            localStorage.setItem('lastCategory', selectedCategory);
+            
+            // Filter quotes
+            let filteredQuotes;
+            if (selectedCategory === 'all') {
+                filteredQuotes = quotes;
+            } else {
+                filteredQuotes = quotes.filter(quote => 
+                    quote.category === selectedCategory
+                );
+            }
+            
+            // Update display
+            updateQuoteDisplay(filteredQuotes);
+        }
+        
+        // Update quote display
+        function updateQuoteDisplay(filteredQuotes) {
+            const container = document.getElementById('quotesContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            filteredQuotes.forEach(quote => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <p>"${quote.text}"</p>
+                    <p><small>Category: ${quote.category}</small></p>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        // Add quote
+        function addQuote() {
+            const text = document.getElementById('newQuoteText').value.trim();
+            const category = document.getElementById('newQuoteCategory').value.trim();
+            
+            if (!text || !category) {
+                alert('Please fill both fields');
+                return;
+            }
+            
+            quotes.push({ text, category });
+            localStorage.setItem('quotes', JSON.stringify(quotes));
+            
+            // Update categories dropdown
+            populateCategories();
+            
+            // Re-apply filter
+            filterQuotes();
+            
+            // Clear form
+            document.getElementById('newQuoteText').value = '';
+            document.getElementById('newQuoteCategory').value = '';
+        }
+        
+        // Show random quote
+        function showRandomQuote() {
+            if (quotes.length === 0) return;
+            
+            const randomIndex = Math.floor(Math.random() * quotes.length);
+            const randomQuote = quotes[randomIndex];
+            
+            const display = document.getElementById('quoteDisplay');
+            if (display) {
+                display.innerHTML = `
+                    <h3>"${randomQuote.text}"</h3>
+                    <p>Category: ${randomQuote.category}</p>
+                `;
+            }
+        }
+        
+        // Toggle form
+        function toggleForm() {
+            const form = document.getElementById('addQuoteForm');
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+            } else {
+                form.style.display = 'none';
+            }
+        }
+        
+        // Initialize
+        function init() {
+            loadQuotes();
+            populateCategories();
+            
+            // Restore last category
+            const lastCategory = localStorage.getItem('lastCategory');
+            if (lastCategory) {
+                const dropdown = document.getElementById('categoryFilter');
+                if (dropdown) {
+                    dropdown.value = lastCategory;
+                    filterQuotes();
+                }
+            } else {
+                updateQuoteDisplay(quotes);
+            }
+        }
+        
+        // Start when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>
