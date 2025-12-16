@@ -1,50 +1,73 @@
 // server-simulator.js
-// Run with: npx serve . (or any static file server)
-
-const quotes = [
-    {
-        id: 'server1',
-        text: "The server says: Always sync your data!",
-        category: "Technology",
-        version: 2,
-        lastModified: new Date().toISOString(),
-        source: 'server'
-    },
-    {
-        id: 'server2',
-        text: "Conflict resolution is important in distributed systems.",
-        category: "Programming",
-        version: 1,
-        lastModified: new Date().toISOString(),
-        source: 'server'
-    }
+let serverQuotes = [
+  { id: 1, text: "The only way to do great work is to love what you do.", author: "Steve Jobs", timestamp: Date.now() - 86400000 },
+  { id: 2, text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs", timestamp: Date.now() - 43200000 },
+  { id: 3, text: "Stay hungry, stay foolish.", author: "Steve Jobs", timestamp: Date.now() - 21600000 }
 ];
 
-// Simulate server API
-if (typeof window !== 'undefined') {
-    window.mockServer = {
-        getQuotes: () => {
-            // Simulate random changes
-            if (Math.random() > 0.7) {
-                const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-                randomQuote.text = `Updated at ${new Date().toLocaleTimeString()}: ${randomQuote.text}`;
-                randomQuote.version++;
-            }
-            
-            return new Promise(resolve => {
-                setTimeout(() => resolve([...quotes]), 500);
-            });
-        },
-        
-        addQuote: (quote) => {
-            const newQuote = {
-                ...quote,
-                id: 'server_' + Date.now(),
-                serverVersion: 1,
-                serverModified: new Date().toISOString()
-            };
-            quotes.push(newQuote);
-            return Promise.resolve(newQuote);
-        }
+let quoteIdCounter = 4;
+
+class ServerSimulator {
+  static async fetchQuotesFromServer() {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    return {
+      success: true,
+      quotes: [...serverQuotes],
+      timestamp: Date.now()
     };
+  }
+
+  static async postQuoteToServer(quote) {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const newQuote = {
+      ...quote,
+      id: quoteIdCounter++,
+      timestamp: Date.now()
+    };
+    
+    serverQuotes.push(newQuote);
+    
+    return {
+      success: true,
+      quote: newQuote,
+      timestamp: Date.now()
+    };
+  }
+
+  static async postMultipleQuotesToServer(quotes) {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const newQuotes = quotes.map(quote => ({
+      ...quote,
+      id: quoteIdCounter++,
+      timestamp: Date.now()
+    }));
+    
+    serverQuotes.push(...newQuotes);
+    
+    return {
+      success: true,
+      quotes: newQuotes,
+      timestamp: Date.now()
+    };
+  }
+
+  static getServerState() {
+    return {
+      quotesCount: serverQuotes.length,
+      latestTimestamp: Math.max(...serverQuotes.map(q => q.timestamp))
+    };
+  }
 }
+
+// Make it available globally for testing
+if (typeof window !== 'undefined') {
+  window.ServerSimulator = ServerSimulator;
+}
+
+export default ServerSimulator;
