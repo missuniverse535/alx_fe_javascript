@@ -5,443 +5,117 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Quote Generator with Filtering</title>
     <style>
-        /* Previous styles remain, adding new styles for filtering */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; }
         
-        /* Filtering Section */
-        .filter-section {
-            background: #e9ecef;
-            border-radius: 15px;
-            padding: 25px;
-            margin: 25px 0;
-            border: 2px solid #dee2e6;
-        }
+        .container { max-width: 800px; margin: 0 auto; }
         
-        .filter-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
+        h1 { margin-bottom: 20px; color: #333; }
         
-        .filter-header h3 {
-            color: #333;
-            font-size: 1.4rem;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .filter-section { margin: 20px 0; }
         
-        .filter-header h3::before {
-            content: '🔍';
-            font-size: 1.5rem;
-        }
-        
-        /* Filter Controls */
-        .filter-controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .category-filter {
-            min-width: 200px;
-            padding: 10px 15px;
+        select {
+            padding: 10px;
             border: 2px solid #667eea;
-            border-radius: 8px;
-            font-size: 1rem;
-            background: white;
-            color: #333;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-right: 10px;
         }
         
-        .category-filter:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-            border-color: #4f5dd1;
-        }
-        
-        .filter-btn {
-            padding: 10px 20px;
-            background: #6f42c1;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .filter-btn:hover {
-            background: #5a379c;
-            transform: translateY(-2px);
-        }
-        
-        #clearFilter::before {
-            content: '↺';
-        }
-        
-        /* Category Tags */
-        .category-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 15px;
-            padding: 10px 0;
-        }
-        
-        .category-tag {
-            padding: 6px 15px;
-            background: white;
-            border: 2px solid #667eea;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #667eea;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .category-tag:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-2px);
-        }
-        
-        .category-tag.active {
-            background: #667eea;
-            color: white;
-            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
-        }
-        
-        .category-tag .count {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.8rem;
-        }
-        
-        /* Active Filter Display */
-        .active-filter {
-            background: #d1ecf1;
-            border-left: 4px solid #0dcaf0;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .active-filter span {
-            color: #0c5460;
-            font-weight: 600;
-        }
-        
-        .active-filter span#currentFilter {
-            color: #667eea;
-            font-size: 1.1rem;
-        }
-        
-        .filter-stats {
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-        
-        /* Quote Items with Category Styling */
-        .quote-item {
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        .quote-item .category-badge {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: #667eea;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        
-        /* Filter Animation */
-        @keyframes filterIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .quote-item.filtered {
-            animation: filterIn 0.5s ease-out;
-        }
-        
-        /* Responsive Filtering */
-        @media (max-width: 768px) {
-            .filter-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .filter-controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .category-filter {
-                width: 100%;
-            }
-            
-            .filter-btn {
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .active-filter {
-                flex-direction: column;
-                align-items: stretch;
-                text-align: center;
-            }
-        }
-        
-        /* No Results Message */
-        .no-results {
-            text-align: center;
-            padding: 40px;
-            color: #6c757d;
-            font-size: 1.1rem;
-            background: #f8f9fa;
+        .quote-section {
+            background: #f5f5f5;
+            padding: 20px;
             border-radius: 10px;
             margin: 20px 0;
         }
         
-        .no-results::before {
-            content: '😔';
-            font-size: 2rem;
-            display: block;
-            margin-bottom: 15px;
-        }
-        
-        /* Filter History */
-        .filter-history {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px dashed #dee2e6;
-        }
-        
-        .filter-history h4 {
-            color: #6c757d;
-            margin-bottom: 10px;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .filter-history h4::before {
-            content: '📊';
-        }
-        
-        .history-items {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        
-        .history-tag {
-            padding: 4px 10px;
+        .quote-item {
             background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            color: #6c757d;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            margin: 5px;
         }
         
-        .history-tag:hover {
-            background: #e9ecef;
-            transform: translateY(-1px);
+        button:hover { background: #5a67d8; }
+        
+        .delete-btn {
+            background: #e53e3e;
+            padding: 5px 10px;
+            font-size: 12px;
         }
         
-        /* Search Filter (Bonus Feature) */
-        .search-filter {
-            position: relative;
-            flex: 1;
-            min-width: 250px;
+        .add-quote-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
         }
         
-        #searchInput {
+        .add-quote-form.active { display: block; }
+        
+        input {
             width: 100%;
-            padding: 10px 15px 10px 40px;
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-        
-        #searchInput:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-        }
-        
-        .search-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
+            padding: 10px;
+            margin: 5px 0 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Dynamic Quote Generator</h1>
-            <p>Filter quotes by category. Your filter preferences are saved!</p>
+        <h1>Dynamic Quote Generator</h1>
+        
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <select id="categoryFilter" onchange="filterQuotes()">
+                <option value="all">All Categories</option>
+                <!-- Categories will be populated by populateCategories() -->
+            </select>
         </div>
         
-        <div class="content">
-            <!-- Storage Status Indicator -->
-            <div id="storageStatus" class="storage-status" style="display: none;">
-                Data saved successfully
+        <!-- Quote Display -->
+        <div class="quote-section">
+            <div id="quoteDisplay">
+                <!-- Random quote will appear here -->
             </div>
-            
-            <!-- Quote Display Section -->
-            <div class="quote-section">
-                <div id="quoteDisplay" class="quote-display">
-                    <!-- Quote will be dynamically inserted here -->
-                </div>
-            </div>
-            
-            <!-- Filtering Section -->
-            <div class="filter-section">
-                <div class="filter-header">
-                    <h3>Filter Quotes</h3>
-                    <div class="filter-controls">
-                        <!-- Category Dropdown -->
-                        <select id="categoryFilter" class="category-filter">
-                            <option value="all">All Categories</option>
-                            <!-- Dynamically populated categories -->
-                        </select>
-                        
-                        <!-- Search Filter (Bonus) -->
-                        <div class="search-filter">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" id="searchInput" placeholder="Search quotes...">
-                        </div>
-                        
-                        <!-- Clear Filter Button -->
-                        <button id="clearFilter" class="filter-btn">Clear Filter</button>
-                    </div>
-                </div>
-                
-                <!-- Category Tags -->
-                <div class="category-tags" id="categoryTags">
-                    <!-- Dynamically populated category tags -->
-                </div>
-                
-                <!-- Active Filter Display -->
-                <div class="active-filter" id="activeFilter" style="display: none;">
-                    <div>
-                        Currently showing: <span id="currentFilter">All Categories</span>
-                        <div class="filter-stats">
-                            <span id="filteredCount">0</span> of <span id="totalCount">0</span> quotes
-                        </div>
-                    </div>
-                    <button id="saveFilterBtn" class="filter-btn" style="background: #28a745;">
-                        💾 Save Filter
-                    </button>
-                </div>
-                
-                <!-- Filter History -->
-                <div class="filter-history">
-                    <h4>Recently Used Filters</h4>
-                    <div class="history-items" id="filterHistory">
-                        <!-- Filter history will appear here -->
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Controls Section -->
-            <div class="controls">
-                <button id="newQuote">Show New Quote</button>
-                <button id="toggleForm">Add New Quote</button>
-            </div>
-            
-            <!-- Add Quote Form -->
-            <div id="addQuoteForm" class="add-quote-form">
-                <div class="form-group">
-                    <label for="newQuoteText">Quote Text</label>
-                    <input type="text" id="newQuoteText" placeholder="Enter your inspirational quote...">
-                </div>
-                <div class="form-group">
-                    <label for="newQuoteCategory">Category</label>
-                    <input type="text" id="newQuoteCategory" placeholder="e.g., Inspiration, Life, Success...">
-                    <div id="categorySuggestions" style="margin-top: 5px; font-size: 0.9rem; color: #6c757d;">
-                        Existing categories: <span id="existingCategories"></span>
-                    </div>
-                </div>
-                <button id="addQuote">Add Quote</button>
-            </div>
-            
-            <!-- Session Storage Display -->
-            <div class="session-info">
-                <h4>Current Session</h4>
-                <p>Last viewed quote: <span id="lastViewed">None yet</span></p>
-                <p>Current filter: <span id="sessionFilter">All Categories</span></p>
-            </div>
-            
-            <!-- Data Management Section -->
-            <div class="data-management">
-                <h3>Data Management</h3>
-                <div class="data-actions">
-                    <button id="exportBtn" class="data-btn">Export Quotes (JSON)</button>
-                    
-                    <div class="import-container">
-                        <button id="importBtn" class="data-btn">Import Quotes</button>
-                        <input type="file" id="importFile" accept=".json" style="display: none;">
-                    </div>
-                    
-                    <button id="clearStorage" class="data-btn">Clear All Data</button>
-                </div>
-                
-                <div class="storage-info">
-                    <p>Quotes stored: <span id="storedCount">0</span></p>
-                    <p>Categories: <span id="categoryCount">0</span></p>
-                    <p>Last updated: <span id="lastUpdated">Never</span></p>
-                </div>
-            </div>
-            
-            <!-- Quotes List Section -->
-            <div class="quotes-list">
-                <h2>All Quotes (<span id="quoteCount">0</span>)</h2>
-                <div id="quotesContainer">
-                    <!-- Quotes will be dynamically listed here -->
-                </div>
-            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div>
+            <button id="newQuote">Show Random Quote</button>
+            <button id="toggleForm">Add New Quote</button>
+        </div>
+        
+        <!-- Add Quote Form -->
+        <div id="addQuoteForm" class="add-quote-form">
+            <input type="text" id="newQuoteText" placeholder="Enter quote text...">
+            <input type="text" id="newQuoteCategory" placeholder="Enter category...">
+            <button id="addQuote">Add Quote</button>
+        </div>
+        
+        <!-- Quotes List -->
+        <h2>All Quotes (<span id="quoteCount">0</span>)</h2>
+        <div id="quotesContainer">
+            <!-- Quotes will be listed here -->
         </div>
     </div>
     
