@@ -1,14 +1,74 @@
 // script.js
 
-// ========== CRITICAL: fetchQuotesFromServer using jsonplaceholder mock API ==========
+// ========== CONFLICT RESOLUTION FUNCTION ==========
+function resolveConflicts(localQuotes, serverQuotes) {
+    console.log("Resolving conflicts between local and server data...");
+    
+    // Create a map for quick lookup
+    const quoteMap = new Map();
+    
+    // First add all server quotes
+    serverQuotes.forEach(quote => {
+        const key = `${quote.text}-${quote.author}`;
+        quoteMap.set(key, {
+            ...quote,
+            source: 'server',
+            conflictResolved: false
+        });
+    });
+    
+    // Then handle local quotes (conflict resolution)
+    localQuotes.forEach(localQuote => {
+        const key = `${localQuote.text}-${localQuote.author}`;
+        const existingQuote = quoteMap.get(key);
+        
+        if (existingQuote) {
+            // CONFLICT: Same quote exists in both places
+            console.log(`Conflict detected for: "${localQuote.text}"`);
+            
+            // Resolution strategy: Keep the newer version
+            if (localQuote.timestamp > existingQuote.timestamp) {
+                // Local version is newer, keep it
+                quoteMap.set(key, {
+                    ...localQuote,
+                    source: 'local (newer)',
+                    conflictResolved: true,
+                    previousVersion: existingQuote
+                });
+                showNotification(`Conflict resolved: Kept newer local version of "${localQuote.text.substring(0, 30)}..."`, "info");
+            } else {
+                // Server version is newer or same, keep server version
+                quoteMap.set(key, {
+                    ...existingQuote,
+                    conflictResolved: true,
+                    previousVersion: localQuote
+                });
+                showNotification(`Conflict resolved: Kept newer server version of "${existingQuote.text.substring(0, 30)}..."`, "info");
+            }
+        } else {
+            // No conflict, just add local quote
+            quoteMap.set(key, {
+                ...localQuote,
+                source: 'local',
+                conflictResolved: false
+            });
+        }
+    });
+    
+    // Convert map back to array
+    const resolvedQuotes = Array.from(quoteMap.values());
+    
+    console.log(`Resolved ${resolvedQuotes.filter(q => q.conflictResolved).length} conflicts`);
+    return resolvedQuotes;
+}
+
+// ========== UPDATED fetchQuotesFromServer with localStorage update ==========
 async function fetchQuotesFromServer() {
     console.log("fetchQuotesFromServer: Fetching data from mock API...");
     
     try {
-        // Show notification
         showNotification("Fetching quotes from server...", "info");
         
-        // USING THE SPECIFIC MOCK API URL
         const response = await fetch('https://jsonplaceholder.typicode.com/posts');
         
         if (!response.ok) {
@@ -19,178 +79,168 @@ async function fetchQuotesFromServer() {
         console.log(`Received ${posts.length} posts from mock API`);
         
         // Convert posts to quotes format
-        const quotes = posts.slice(0, 5).map((post, index) => ({
+        const serverQuotes = posts.slice(0, 5).map((post, index) => ({
             id: post.id,
             text: post.title.length > 50 ? post.title.substring(0, 50) + '...' : post.title,
             author: `User ${post.userId}`,
             body: post.body,
-            timestamp: Date.now() - (index * 86400000), // Simulate different timestamps
+            timestamp: Date.now() - (index * 86400000),
             source: 'server'
         }));
         
-        // Show success notification
-        showNotification(`Fetched ${quotes.length} quotes from server`, "success");
+        // Get current local quotes
+        const localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
+        
+        // Apply conflict resolution
+        const resolvedQuotes = resolveConflicts(localQuotes, serverQuotes);
+        
+        // Update localStorage with resolved data
+        localStorage.setItem('quotes', JSON.stringify(resolvedQuotes));
+        
+        // Update last fetch time
+        localStorage.setItem('lastServerFetch', Date.now().toString());
+        
+        // SPECIFIC NOTIFICATION TEXT THAT WAS REQUESTED
+        showNotification("Quotes synced with server!", "success");
+        
+        // Update UI
+        displayQuotes();
         
         return {
             success: true,
-            quotes: quotes,
+            quotes: resolvedQuotes,
             timestamp: Date.now(),
-            source: 'jsonplaceholder.typicode.com'
+            conflictsResolved: resolvedQuotes.filter(q => q.conflictResolved).length
         };
         
     } catch (error) {
         console.error("Error fetching from mock API:", error);
         
-        // Fallback to local server simulator if online API fails
+        // Fallback option
         if (typeof serverSimulator !== 'undefined') {
-            console.log("Falling back to local server simulator");
             try {
                 const localResult = await serverSimulator.fetchQuotesFromServer();
-                return localResult;
+                
+                // Still apply conflict resolution
+                const localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
+                const resolvedQuotes = resolveConflicts(localQuotes, localResult.quotes);
+                localStorage.setItem('quotes', JSON.stringify(resolvedQuotes));
+                
+                showNotification("Quotes synced with server!", "success");
+                displayQuotes();
+                
+                return {
+                    ...localResult,
+                    conflictsResolved: resolvedQuotes.filter(q => q.conflictResolved).length
+                };
             } catch (fallbackError) {
-                // Continue to error handling
+                // Continue to error
             }
         }
         
-        showNotification("Failed to fetch quotes: " + error.message, "error");
+        showNotification("Failed to sync quotes with server", "error");
         return {
             success: false,
             error: error.message,
-            quotes: [],
-            timestamp: Date.now()
-        };
-    }
-}
-
-// ========== ALSO ADD postQuoteToServer using the same mock API ==========
-async function postQuoteToServer(quote) {
-    console.log("postQuoteToServer: Posting data to mock API...");
-    
-    try {
-        // USING THE SPECIFIC MOCK API URL
-        const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                title: quote.text,
-                body: quote.author,
-                userId: 1
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        console.log("Successfully posted to mock API:", result);
-        
-        // Create a proper quote object from the response
-        const serverQuote = {
-            id: result.id,
-            text: result.title,
-            author: `User ${result.userId}`,
-            timestamp: Date.now(),
-            source: 'server'
-        };
-        
-        showNotification("Quote posted to server successfully!", "success");
-        
-        return {
-            success: true,
-            quote: serverQuote,
-            serverResponse: result,
-            timestamp: Date.now()
-        };
-        
-    } catch (error) {
-        console.error("Error posting to mock API:", error);
-        
-        // Fallback to local server simulator
-        if (typeof serverSimulator !== 'undefined') {
-            console.log("Falling back to local server simulator");
-            try {
-                const localResult = await serverSimulator.postQuoteToServer(quote);
-                return localResult;
-            } catch (fallbackError) {
-                // Continue to error handling
-            }
-        }
-        
-        showNotification("Failed to post quote: " + error.message, "error");
-        return {
-            success: false,
-            error: error.message
+            quotes: []
         };
     }
 }
 
 // ========== UPDATED syncQuotes function ==========
 async function syncQuotes() {
-    console.log("syncQuotes: Starting synchronization...");
+    console.log("syncQuotes: Starting full synchronization...");
     
     try {
         showNotification("Starting sync with server...", "info");
         
-        // 1. Fetch quotes from mock API
-        const serverResult = await fetchQuotesFromServer();
+        // 1. Fetch from server
+        const fetchResult = await fetchQuotesFromServer();
         
-        if (!serverResult.success) {
+        if (!fetchResult.success) {
             throw new Error("Failed to fetch from server");
         }
         
-        // 2. Get local quotes
-        let localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
+        // 2. Get local quotes (may have been updated by fetchQuotesFromServer)
+        const localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
         
-        // 3. Post local quotes to server (only first 3 to avoid rate limiting)
-        const quotesToPost = localQuotes
-            .filter(q => !q.id) // Only quotes without server ID
-            .slice(0, 3); // Limit to 3
+        // 3. Identify quotes to post to server (only local ones without server ID)
+        const quotesToSync = localQuotes
+            .filter(quote => !quote.id && quote.source !== 'server')
+            .slice(0, 2); // Limit to avoid rate limiting
         
-        for (const quote of quotesToPost) {
-            await postQuoteToServer(quote);
-            // Simulate delay to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 500));
+        let postedCount = 0;
+        
+        // 4. Post quotes to server
+        for (const quote of quotesToSync) {
+            try {
+                const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: quote.text,
+                        body: quote.author,
+                        userId: 1
+                    })
+                });
+                
+                if (response.ok) {
+                    postedCount++;
+                    showNotification(`Posted quote to server: "${quote.text.substring(0, 20)}..."`, "success");
+                }
+                
+                // Delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+            } catch (postError) {
+                console.error("Error posting quote:", postError);
+            }
         }
         
-        // 4. Merge server quotes with local
-        const allQuotes = [...serverResult.quotes];
-        
-        // Add local quotes that aren't duplicates
-        localQuotes.forEach(localQuote => {
-            const isDuplicate = allQuotes.some(serverQuote => 
-                serverQuote.text === localQuote.text || 
-                serverQuote.id === localQuote.id
-            );
-            
-            if (!isDuplicate) {
-                allQuotes.push(localQuote);
-            }
-        });
-        
-        // 5. Update localStorage
-        localStorage.setItem('quotes', JSON.stringify(allQuotes));
-        localStorage.setItem('lastSyncTime', Date.now().toString());
+        // 5. Update sync timestamp
+        const syncTime = Date.now();
+        localStorage.setItem('lastSyncTime', syncTime.toString());
+        localStorage.setItem('syncCount', (parseInt(localStorage.getItem('syncCount') || '0') + 1).toString());
         
         // 6. Update UI
-        if (typeof displayQuotes === 'function') {
-            displayQuotes();
+        updateSyncStatus();
+        displayQuotes();
+        
+        // 7. Show completion notification
+        if (postedCount > 0) {
+            showNotification(`Sync complete! ${postedCount} quotes uploaded to server`, "success");
+        } else {
+            showNotification("Sync complete! Data synchronized with server", "success");
         }
         
-        showNotification(`Sync complete! ${allQuotes.length} quotes total`, "success");
+        // ALSO SHOW ALERT IF REQUESTED
+        if (typeof alert !== 'undefined') {
+            setTimeout(() => {
+                alert("Quotes synced with server!");
+            }, 100);
+        }
         
         return {
             success: true,
-            quotesCount: allQuotes.length,
-            serverQuotes: serverResult.quotes.length,
-            localQuotes: localQuotes.length
+            quotesCount: localQuotes.length,
+            postedToServer: postedCount,
+            conflictsResolved: fetchResult.conflictsResolved || 0,
+            syncTime: syncTime
         };
         
     } catch (error) {
         console.error("Error in syncQuotes:", error);
         showNotification("Sync failed: " + error.message, "error");
+        
+        // Show alert for error too
+        if (typeof alert !== 'undefined') {
+            setTimeout(() => {
+                alert("Failed to sync quotes with server: " + error.message);
+            }, 100);
+        }
+        
         return {
             success: false,
             error: error.message
@@ -198,54 +248,72 @@ async function syncQuotes() {
     }
 }
 
-// ========== HELPER FUNCTIONS ==========
+// ========== UPDATED showNotification function ==========
 function showNotification(message, type = 'info') {
+    console.log(`Notification [${type}]: ${message}`);
+    
+    // Also log to console for debugging
+    if (type === 'error') {
+        console.error('UI Notification Error:', message);
+    }
+    
+    // Create or get notification element
     let notification = document.getElementById('notification');
     
     if (!notification) {
         notification = document.createElement('div');
         notification.id = 'notification';
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 5px;
-            color: white;
-            z-index: 1000;
-            display: none;
-            min-width: 250px;
-            max-width: 300px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-            font-family: Arial, sans-serif;
-        `;
         document.body.appendChild(notification);
     }
     
-    notification.textContent = message;
-    notification.className = `notification ${type}`;
+    // Set styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        color: white;
+        z-index: 1000;
+        display: block;
+        opacity: 1;
+        min-width: 250px;
+        max-width: 300px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        transition: opacity 0.3s ease;
+    `;
     
-    // Set colors
+    // Set color based on type
     const colors = {
         success: '#28a745',
         error: '#dc3545',
-        info: '#17a2b8'
+        info: '#17a2b8',
+        warning: '#ffc107'
     };
     notification.style.backgroundColor = colors[type] || colors.info;
     
-    // Show with animation
-    notification.style.display = 'block';
-    notification.style.opacity = '1';
+    // Set message
+    notification.textContent = message;
     
-    // Hide after 3 seconds
+    // Add close button
+    notification.innerHTML = `
+        ${message}
+        <button onclick="this.parentElement.style.opacity='0'; setTimeout(()=>this.parentElement.style.display='none', 300)" 
+                style="background:none; border:none; color:white; float:right; cursor:pointer; font-weight:bold; margin-left: 10px;">X</button>
+    `;
+    
+    // Auto-hide after 4 seconds
     setTimeout(() => {
         notification.style.opacity = '0';
         setTimeout(() => {
             notification.style.display = 'none';
         }, 300);
-    }, 3000);
+    }, 4000);
 }
 
+// ========== UPDATED displayQuotes with conflict indicators ==========
 function displayQuotes() {
     const quotesList = document.getElementById('quotesList');
     if (!quotesList) return;
@@ -254,83 +322,139 @@ function displayQuotes() {
     
     quotesList.innerHTML = '';
     
+    if (quotes.length === 0) {
+        quotesList.innerHTML = '<li class="no-quotes">No quotes found. Add some or sync with server!</li>';
+        return;
+    }
+    
     quotes.forEach(quote => {
         const li = document.createElement('li');
         li.className = 'quote-item';
+        
+        // Add conflict indicator if applicable
+        const conflictBadge = quote.conflictResolved ? 
+            `<span class="conflict-badge" title="This quote had a conflict that was resolved">⚠️ Resolved</span>` : '';
+        
+        // Add source indicator
+        const sourceBadge = quote.source ? 
+            `<span class="source-badge ${quote.source}">${quote.source}</span>` : '';
+        
         li.innerHTML = `
+            <div class="quote-header">
+                ${conflictBadge}
+                ${sourceBadge}
+            </div>
             <div class="quote-text">"${quote.text || ''}"</div>
             <div class="quote-author">- ${quote.author || 'Unknown'}</div>
             <div class="quote-meta">
                 <small>ID: ${quote.id || 'local'}</small>
                 <small>${new Date(quote.timestamp || Date.now()).toLocaleString()}</small>
-                ${quote.source ? `<small>Source: ${quote.source}</small>` : ''}
+                <small class="sync-info">Last updated: ${new Date(quote.timestamp || Date.now()).toLocaleTimeString()}</small>
             </div>
+            ${quote.previousVersion ? 
+                `<div class="conflict-info">
+                    <small>Previous version was from: ${quote.previousVersion.source || 'unknown'}</small>
+                </div>` : ''}
         `;
         quotesList.appendChild(li);
     });
 }
 
+// ========== UPDATED updateSyncStatus ==========
 function updateSyncStatus() {
     const syncStatus = document.getElementById('syncStatus');
     if (!syncStatus) return;
     
     const lastSync = localStorage.getItem('lastSyncTime');
+    const syncCount = localStorage.getItem('syncCount') || '0';
+    const lastFetch = localStorage.getItem('lastServerFetch');
+    
+    let statusText = '';
+    
     if (!lastSync) {
-        syncStatus.textContent = "Last sync: Never";
+        statusText = "Last sync: Never | Sync count: 0";
     } else {
-        const timeStr = new Date(parseInt(lastSync)).toLocaleTimeString();
-        syncStatus.textContent = `Last sync: ${timeStr}`;
+        const syncTime = new Date(parseInt(lastSync));
+        const fetchTime = lastFetch ? new Date(parseInt(lastFetch)) : null;
+        
+        statusText = `Last sync: ${syncTime.toLocaleTimeString()} | Sync count: ${syncCount}`;
+        
+        if (fetchTime) {
+            statusText += ` | Last fetch: ${fetchTime.toLocaleTimeString()}`;
+        }
     }
+    
+    syncStatus.textContent = statusText;
+    syncStatus.title = "Click to sync now";
+    
+    // Make it clickable
+    syncStatus.style.cursor = 'pointer';
+    syncStatus.style.textDecoration = 'underline';
+    syncStatus.onclick = syncQuotes;
 }
 
-// ========== INITIALIZATION ==========
-function startPeriodicSync() {
-    console.log("Starting periodic sync (every 60 seconds)");
+// ========== ADDITIONAL CONFLICT DETECTION FUNCTION ==========
+function detectAndReportConflicts() {
+    const quotes = JSON.parse(localStorage.getItem('quotes')) || [];
+    const conflicts = quotes.filter(q => q.conflictResolved);
     
-    // Initial sync
+    if (conflicts.length > 0) {
+        console.log(`Detected ${conflicts.length} resolved conflicts`);
+        
+        // Show summary notification
+        showNotification(`Found ${conflicts.length} resolved conflicts in your data`, "warning");
+        
+        // Optionally show details
+        conflicts.forEach(conflict => {
+            console.log(`Conflict: "${conflict.text}" - Kept ${conflict.source} version`);
+        });
+    }
+    
+    return conflicts;
+}
+
+// ========== INITIALIZATION WITH CONFLICT CHECK ==========
+function startPeriodicSync() {
+    console.log("Starting periodic sync (every 45 seconds)");
+    
+    // Initial sync with delay
     setTimeout(() => {
         syncQuotes();
-    }, 2000);
+        
+        // Check for conflicts after first sync
+        setTimeout(detectAndReportConflicts, 2000);
+    }, 3000);
     
-    // Periodic sync every 60 seconds (to respect API rate limits)
+    // Periodic sync
     setInterval(() => {
+        console.log("Periodic sync triggered");
         syncQuotes();
-    }, 60000);
+    }, 45000);
 }
 
+// ========== SETUP EVENT LISTENERS ==========
 function setupEventListeners() {
-    // Fetch button
+    // Fetch button - shows alert too
     const fetchBtn = document.getElementById('fetchBtn');
     if (fetchBtn) {
         fetchBtn.addEventListener('click', async () => {
             const result = await fetchQuotesFromServer();
             if (result.success) {
-                // Merge with local storage
-                const localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
-                const allQuotes = [...result.quotes, ...localQuotes];
-                
-                // Remove duplicates based on text
-                const uniqueQuotes = [];
-                const seen = new Set();
-                
-                allQuotes.forEach(quote => {
-                    const key = quote.text;
-                    if (!seen.has(key)) {
-                        seen.add(key);
-                        uniqueQuotes.push(quote);
-                    }
-                });
-                
-                localStorage.setItem('quotes', JSON.stringify(uniqueQuotes));
-                displayQuotes();
+                // Show alert
+                alert("Quotes fetched and synced with server!");
             }
         });
     }
     
-    // Sync button
+    // Sync button - shows alert too
     const syncBtn = document.getElementById('syncBtn');
     if (syncBtn) {
-        syncBtn.addEventListener('click', syncQuotes);
+        syncBtn.addEventListener('click', async () => {
+            const result = await syncQuotes();
+            if (result.success) {
+                // Alert is already shown in syncQuotes function
+            }
+        });
     }
     
     // Add quote button
@@ -345,6 +469,7 @@ function setupEventListeners() {
             
             if (!text || !author) {
                 showNotification("Please enter both quote and author", "error");
+                alert("Please enter both quote and author!");
                 return;
             }
             
@@ -352,6 +477,7 @@ function setupEventListeners() {
                 text: text,
                 author: author,
                 timestamp: Date.now(),
+                source: 'local',
                 isLocal: true
             };
             
@@ -364,28 +490,64 @@ function setupEventListeners() {
             
             displayQuotes();
             showNotification("Quote added locally!", "success");
+            
+            // Auto-sync after a delay
+            setTimeout(() => {
+                syncQuotes();
+            }, 2000);
         });
     }
+    
+    // Also sync on page visibility change (when user returns to tab)
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            console.log("Page became visible, syncing...");
+            syncQuotes();
+        }
+    });
 }
 
-// Initialize everything when page loads
+// ========== MAIN INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("Initializing Quote Manager...");
+    console.log("Initializing Quote Manager with conflict resolution...");
     
-    // Make functions available globally
+    // Make functions globally available
     window.fetchQuotesFromServer = fetchQuotesFromServer;
-    window.postQuoteToServer = postQuoteToServer;
+    window.postQuoteToServer = async function(quote) {
+        // Implementation for posting
+        try {
+            const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    title: quote.text,
+                    body: quote.author,
+                    userId: 1
+                })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error(error);
+            return null;
+        }
+    };
     window.syncQuotes = syncQuotes;
     window.showNotification = showNotification;
     window.displayQuotes = displayQuotes;
+    window.updateSyncStatus = updateSyncStatus;
+    window.resolveConflicts = resolveConflicts;
+    window.detectAndReportConflicts = detectAndReportConflicts;
     
-    // Setup UI
+    // Setup
     setupEventListeners();
     displayQuotes();
     updateSyncStatus();
     
-    // Start background sync
+    // Start sync
     startPeriodicSync();
     
-    console.log("Quote Manager initialized successfully");
+    // Initial conflict check
+    setTimeout(detectAndReportConflicts, 5000);
+    
+    console.log("Quote Manager initialized with conflict resolution");
 });
