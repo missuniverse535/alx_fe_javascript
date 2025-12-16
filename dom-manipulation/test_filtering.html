@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Filtering System Tests</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .pass { background: #d4edda; border-color: #c3e6cb; }
+        .fail { background: #f8d7da; border-color: #f5c6cb; }
+        .running { background: #fff3cd; border-color: #ffeaa7; }
+        button { margin: 5px; padding: 8px 15px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Filtering System Tests</h1>
+    
+    <div id="test1" class="test running">
+        <h3>Test 1: Category Extraction</h3>
+        <p id="result1">Running...</p>
+    </div>
+    
+    <div id="test2" class="test running">
+        <h3>Test 2: Filter Application</h3>
+        <p id="result2">Running...</p>
+    </div>
+    
+    <div id="test3" class="test running">
+        <h3>Test 3: Storage Persistence</h3>
+        <p id="result3">Running...</p>
+    </div>
+    
+    <div id="test4" class="test running">
+        <h3>Test 4: New Category Handling</h3>
+        <p id="result4">Running...</p>
+    </div>
+    
+    <script>
+        // Test data
+        const testQuotes = [
+            { text: "Test quote 1", category: "Inspiration" },
+            { text: "Test quote 2", category: "Life" },
+            { text: "Test quote 3", category: "Inspiration" },
+            { text: "Test quote 4", category: "Success" }
+        ];
+        
+        // Test 1: Category Extraction
+        function testCategoryExtraction() {
+            const categories = [...new Set(testQuotes.map(q => q.category))].sort();
+            const expected = ["Inspiration", "Life", "Success"];
+            
+            const test1 = document.getElementById('test1');
+            const result1 = document.getElementById('result1');
+            
+            if (JSON.stringify(categories) === JSON.stringify(expected)) {
+                test1.className = 'test pass';
+                result1.textContent = '✓ PASS: Categories correctly extracted';
+            } else {
+                test1.className = 'test fail';
+                result1.textContent = `✗ FAIL: Expected ${JSON.stringify(expected)}, got ${JSON.stringify(categories)}`;
+            }
+        }
+        
+        // Test 2: Filter Application
+        function testFilterApplication() {
+            const filtered = testQuotes.filter(q => q.category === "Inspiration");
+            
+            const test2 = document.getElementById('test2');
+            const result2 = document.getElementById('result2');
+            
+            if (filtered.length === 2) {
+                test2.className = 'test pass';
+                result2.textContent = '✓ PASS: Filter correctly applied (2 quotes found)';
+            } else {
+                test2.className = 'test fail';
+                result2.textContent = `✗ FAIL: Expected 2 quotes, got ${filtered.length}`;
+            }
+        }
+        
+        // Test 3: Storage Persistence
+        function testStoragePersistence() {
+            const test3 = document.getElementById('test3');
+            const result3 = document.getElementById('result3');
+            
+            try {
+                localStorage.setItem('testFilter', 'Inspiration');
+                const retrieved = localStorage.getItem('testFilter');
+                localStorage.removeItem('testFilter');
+                
+                if (retrieved === 'Inspiration') {
+                    test3.className = 'test pass';
+                    result3.textContent = '✓ PASS: Filter preference correctly persisted';
+                } else {
+                    throw new Error('Retrieval failed');
+                }
+            } catch (error) {
+                test3.className = 'test fail';
+                result3.textContent = `✗ FAIL: ${error.message}`;
+            }
+        }
+        
+        // Test 4: New Category Handling
+        function testNewCategoryHandling() {
+            const test4 = document.getElementById('test4');
+            const result4 = document.getElementById('result4');
+            
+            const newQuote = { text: "New test quote", category: "Wisdom" };
+            const updatedQuotes = [...testQuotes, newQuote];
+            const updatedCategories = [...new Set(updatedQuotes.map(q => q.category))].sort();
+            const expected = ["Inspiration", "Life", "Success", "Wisdom"];
+            
+            if (JSON.stringify(updatedCategories) === JSON.stringify(expected)) {
+                test4.className = 'test pass';
+                result4.textContent = '✓ PASS: New category correctly added to collection';
+            } else {
+                test4.className = 'test fail';
+                result4.textContent = `✗ FAIL: Expected ${JSON.stringify(expected)}, got ${JSON.stringify(updatedCategories)}`;
+            }
+        }
+        
+        // Run tests
+        setTimeout(() => {
+            testCategoryExtraction();
+            testFilterApplication();
+            testStoragePersistence();
+            testNewCategoryHandling();
+        }, 500);
+    </script>
+</body>
+</html>
