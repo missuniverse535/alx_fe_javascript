@@ -1,73 +1,79 @@
 // server-simulator.js
-let serverQuotes = [
-  { id: 1, text: "The only way to do great work is to love what you do.", author: "Steve Jobs", timestamp: Date.now() - 86400000 },
-  { id: 2, text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs", timestamp: Date.now() - 43200000 },
-  { id: 3, text: "Stay hungry, stay foolish.", author: "Steve Jobs", timestamp: Date.now() - 21600000 }
-];
-
-let quoteIdCounter = 4;
-
 class ServerSimulator {
-  static async fetchQuotesFromServer() {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    return {
-      success: true,
-      quotes: [...serverQuotes],
-      timestamp: Date.now()
-    };
-  }
+    constructor() {
+        this.quotes = [
+            { id: 1, text: "The only way to do great work is to love what you do.", author: "Steve Jobs", timestamp: 1734379200000 },
+            { id: 2, text: "Your time is limited, so don't waste it living someone else's life.", author: "Steve Jobs", timestamp: 1734465600000 },
+            { id: 3, text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs", timestamp: 1734552000000 }
+        ];
+        this.nextId = 4;
+    }
 
-  static async postQuoteToServer(quote) {
     // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const newQuote = {
-      ...quote,
-      id: quoteIdCounter++,
-      timestamp: Date.now()
-    };
-    
-    serverQuotes.push(newQuote);
-    
-    return {
-      success: true,
-      quote: newQuote,
-      timestamp: Date.now()
-    };
-  }
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 
-  static async postMultipleQuotesToServer(quotes) {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const newQuotes = quotes.map(quote => ({
-      ...quote,
-      id: quoteIdCounter++,
-      timestamp: Date.now()
-    }));
-    
-    serverQuotes.push(...newQuotes);
-    
-    return {
-      success: true,
-      quotes: newQuotes,
-      timestamp: Date.now()
-    };
-  }
+    // Fetch quotes from server (mock API)
+    async fetchQuotesFromServer() {
+        console.log("Fetching quotes from server...");
+        await this.delay(500); // Simulate network delay
+        
+        return {
+            success: true,
+            quotes: JSON.parse(JSON.stringify(this.quotes)), // Return copy
+            timestamp: Date.now()
+        };
+    }
 
-  static getServerState() {
-    return {
-      quotesCount: serverQuotes.length,
-      latestTimestamp: Math.max(...serverQuotes.map(q => q.timestamp))
-    };
-  }
+    // Post a single quote to server
+    async postQuoteToServer(quote) {
+        console.log("Posting quote to server:", quote);
+        await this.delay(300);
+        
+        const newQuote = {
+            ...quote,
+            id: this.nextId++,
+            timestamp: Date.now()
+        };
+        
+        this.quotes.push(newQuote);
+        
+        return {
+            success: true,
+            quote: newQuote,
+            timestamp: Date.now()
+        };
+    }
+
+    // Post multiple quotes to server
+    async postMultipleQuotesToServer(quotes) {
+        console.log("Posting multiple quotes to server:", quotes);
+        await this.delay(500);
+        
+        const newQuotes = quotes.map(quote => ({
+            ...quote,
+            id: this.nextId++,
+            timestamp: Date.now()
+        }));
+        
+        this.quotes.push(...newQuotes);
+        
+        return {
+            success: true,
+            quotes: newQuotes,
+            timestamp: Date.now()
+        };
+    }
+
+    // Get server status for debugging
+    getServerStatus() {
+        return {
+            totalQuotes: this.quotes.length,
+            lastUpdated: this.quotes.length > 0 ? Math.max(...this.quotes.map(q => q.timestamp)) : 0
+        };
+    }
 }
 
-// Make it available globally for testing
-if (typeof window !== 'undefined') {
-  window.ServerSimulator = ServerSimulator;
-}
-
-export default ServerSimulator;
+// Create global instance
+window.serverSimulator = new ServerSimulator();
