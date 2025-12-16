@@ -3,84 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Quote Generator with Storage</title>
+    <title>Dynamic Quote Generator with Filtering</title>
     <style>
-        /* Previous styles remain the same, adding new styles for import/export */
+        /* Previous styles remain, adding new styles for filtering */
         
-        /* Storage Status Indicator */
-        .storage-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #28a745;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-            z-index: 1001;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            animation: slideInRight 0.3s ease-out;
-        }
-        
-        .storage-status::before {
-            content: '✓';
-            font-weight: bold;
-        }
-        
-        .storage-status.saving {
-            background: #ffc107;
-        }
-        
-        .storage-status.saving::before {
-            content: '⏳';
-        }
-        
-        .storage-status.error {
-            background: #dc3545;
-        }
-        
-        .storage-status.error::before {
-            content: '✗';
-        }
-        
-        /* Import/Export Section */
-        .data-management {
-            background: #f1f3f5;
+        /* Filtering Section */
+        .filter-section {
+            background: #e9ecef;
             border-radius: 15px;
             padding: 25px;
-            margin-top: 30px;
-            border: 2px dashed #ced4da;
+            margin: 25px 0;
+            border: 2px solid #dee2e6;
         }
         
-        .data-management h3 {
+        .filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .filter-header h3 {
             color: #333;
-            font-size: 1.3rem;
+            font-size: 1.4rem;
+            margin: 0;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
-        .data-management h3::before {
-            content: '📁';
+        .filter-header h3::before {
+            content: '🔍';
             font-size: 1.5rem;
         }
         
-        .data-actions {
+        /* Filter Controls */
+        .filter-controls {
             display: flex;
             gap: 15px;
+            align-items: center;
             flex-wrap: wrap;
         }
         
-        .data-btn {
+        .category-filter {
+            min-width: 200px;
+            padding: 10px 15px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .category-filter:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            border-color: #4f5dd1;
+        }
+        
+        .filter-btn {
             padding: 10px 20px;
+            background: #6f42c1;
+            color: white;
             border: none;
             border-radius: 8px;
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -89,137 +80,239 @@
             gap: 8px;
         }
         
-        #exportBtn {
-            background: #17a2b8;
-            color: white;
-        }
-        
-        #exportBtn:hover {
-            background: #138496;
-            transform: translateY(-2px);
-        }
-        
-        #exportBtn::before {
-            content: '📤';
-        }
-        
-        .import-container {
-            position: relative;
-        }
-        
-        #importBtn {
-            background: #6f42c1;
-            color: white;
-        }
-        
-        #importBtn:hover {
+        .filter-btn:hover {
             background: #5a379c;
             transform: translateY(-2px);
         }
         
-        #importBtn::before {
-            content: '📥';
+        #clearFilter::before {
+            content: '↺';
         }
         
-        #importFile {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
+        /* Category Tags */
+        .category-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            padding: 10px 0;
+        }
+        
+        .category-tag {
+            padding: 6px 15px;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #667eea;
             cursor: pointer;
-            top: 0;
-            left: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         
-        #clearStorage {
-            background: #dc3545;
+        .category-tag:hover {
+            background: #667eea;
             color: white;
-        }
-        
-        #clearStorage:hover {
-            background: #c82333;
             transform: translateY(-2px);
         }
         
-        #clearStorage::before {
-            content: '🗑️';
+        .category-tag.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
         }
         
-        /* Storage Info */
-        .storage-info {
-            margin-top: 15px;
-            padding: 10px;
-            background: white;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            color: #666;
+        .category-tag .count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
         }
         
-        .storage-info span {
-            font-weight: 600;
-            color: #333;
-        }
-        
-        /* Session Storage Display */
-        .session-info {
-            background: #e7f5ff;
-            border-left: 4px solid #339af0;
+        /* Active Filter Display */
+        .active-filter {
+            background: #d1ecf1;
+            border-left: 4px solid #0dcaf0;
             padding: 15px;
             border-radius: 8px;
             margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
         
-        .session-info h4 {
-            color: #1864ab;
-            margin-bottom: 10px;
+        .active-filter span {
+            color: #0c5460;
+            font-weight: 600;
+        }
+        
+        .active-filter span#currentFilter {
+            color: #667eea;
             font-size: 1.1rem;
         }
         
-        /* Animations */
-        @keyframes slideInRight {
+        .filter-stats {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        /* Quote Items with Category Styling */
+        .quote-item {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .quote-item .category-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        /* Filter Animation */
+        @keyframes filterIn {
             from {
-                transform: translateX(100px);
                 opacity: 0;
+                transform: translateY(10px);
             }
             to {
-                transform: translateX(0);
                 opacity: 1;
+                transform: translateY(0);
             }
         }
         
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
-            }
+        .quote-item.filtered {
+            animation: filterIn 0.5s ease-out;
         }
         
-        .storage-status.saved {
-            animation: pulse 1s ease;
-        }
-        
-        /* Responsive Updates */
+        /* Responsive Filtering */
         @media (max-width: 768px) {
-            .storage-status {
-                top: 10px;
-                right: 10px;
-                font-size: 0.8rem;
-                padding: 6px 12px;
-            }
-            
-            .data-actions {
+            .filter-header {
                 flex-direction: column;
+                align-items: stretch;
             }
             
-            .data-btn {
+            .filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .category-filter {
+                width: 100%;
+            }
+            
+            .filter-btn {
                 width: 100%;
                 justify-content: center;
             }
+            
+            .active-filter {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+        }
+        
+        /* No Results Message */
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-size: 1.1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .no-results::before {
+            content: '😔';
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 15px;
+        }
+        
+        /* Filter History */
+        .filter-history {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px dashed #dee2e6;
+        }
+        
+        .filter-history h4 {
+            color: #6c757d;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-history h4::before {
+            content: '📊';
+        }
+        
+        .history-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .history-tag {
+            padding: 4px 10px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .history-tag:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+        
+        /* Search Filter (Bonus Feature) */
+        .search-filter {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        #searchInput {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        #searchInput:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
         }
     </style>
 </head>
@@ -227,11 +320,11 @@
     <div class="container">
         <div class="header">
             <h1>Dynamic Quote Generator</h1>
-            <p>Your quotes are automatically saved locally! Import/Export JSON data.</p>
+            <p>Filter quotes by category. Your filter preferences are saved!</p>
         </div>
         
         <div class="content">
-            <!-- Storage Status Indicator (Dynamic) -->
+            <!-- Storage Status Indicator -->
             <div id="storageStatus" class="storage-status" style="display: none;">
                 Data saved successfully
             </div>
@@ -240,6 +333,55 @@
             <div class="quote-section">
                 <div id="quoteDisplay" class="quote-display">
                     <!-- Quote will be dynamically inserted here -->
+                </div>
+            </div>
+            
+            <!-- Filtering Section -->
+            <div class="filter-section">
+                <div class="filter-header">
+                    <h3>Filter Quotes</h3>
+                    <div class="filter-controls">
+                        <!-- Category Dropdown -->
+                        <select id="categoryFilter" class="category-filter">
+                            <option value="all">All Categories</option>
+                            <!-- Dynamically populated categories -->
+                        </select>
+                        
+                        <!-- Search Filter (Bonus) -->
+                        <div class="search-filter">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="searchInput" placeholder="Search quotes...">
+                        </div>
+                        
+                        <!-- Clear Filter Button -->
+                        <button id="clearFilter" class="filter-btn">Clear Filter</button>
+                    </div>
+                </div>
+                
+                <!-- Category Tags -->
+                <div class="category-tags" id="categoryTags">
+                    <!-- Dynamically populated category tags -->
+                </div>
+                
+                <!-- Active Filter Display -->
+                <div class="active-filter" id="activeFilter" style="display: none;">
+                    <div>
+                        Currently showing: <span id="currentFilter">All Categories</span>
+                        <div class="filter-stats">
+                            <span id="filteredCount">0</span> of <span id="totalCount">0</span> quotes
+                        </div>
+                    </div>
+                    <button id="saveFilterBtn" class="filter-btn" style="background: #28a745;">
+                        💾 Save Filter
+                    </button>
+                </div>
+                
+                <!-- Filter History -->
+                <div class="filter-history">
+                    <h4>Recently Used Filters</h4>
+                    <div class="history-items" id="filterHistory">
+                        <!-- Filter history will appear here -->
+                    </div>
                 </div>
             </div>
             
@@ -258,6 +400,9 @@
                 <div class="form-group">
                     <label for="newQuoteCategory">Category</label>
                     <input type="text" id="newQuoteCategory" placeholder="e.g., Inspiration, Life, Success...">
+                    <div id="categorySuggestions" style="margin-top: 5px; font-size: 0.9rem; color: #6c757d;">
+                        Existing categories: <span id="existingCategories"></span>
+                    </div>
                 </div>
                 <button id="addQuote">Add Quote</button>
             </div>
@@ -266,7 +411,7 @@
             <div class="session-info">
                 <h4>Current Session</h4>
                 <p>Last viewed quote: <span id="lastViewed">None yet</span></p>
-                <p>Session start: <span id="sessionTime"></span></p>
+                <p>Current filter: <span id="sessionFilter">All Categories</span></p>
             </div>
             
             <!-- Data Management Section -->
@@ -285,8 +430,8 @@
                 
                 <div class="storage-info">
                     <p>Quotes stored: <span id="storedCount">0</span></p>
+                    <p>Categories: <span id="categoryCount">0</span></p>
                     <p>Last updated: <span id="lastUpdated">Never</span></p>
-                    <p>Storage used: <span id="storageUsed">0 KB</span></p>
                 </div>
             </div>
             
