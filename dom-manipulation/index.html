@@ -4,159 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quote Manager with Sync</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .input-section {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-bottom: 30px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-        
-        input {
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        
-        button {
-            padding: 12px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        
-        button:hover {
-            background-color: #0056b3;
-        }
-        
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .sync-btn {
-            background-color: #28a745;
-        }
-        
-        .sync-btn:hover {
-            background-color: #1e7e34;
-        }
-        
-        .fetch-btn {
-            background-color: #17a2b8;
-        }
-        
-        .fetch-btn:hover {
-            background-color: #138496;
-        }
-        
-        .quotes-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        
-        .quote-item {
-            background-color: white;
-            border-left: 4px solid #007bff;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 5px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        .quote-text {
-            font-style: italic;
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        
-        .quote-author {
-            font-weight: bold;
-            color: #666;
-            text-align: right;
-        }
-        
-        .quote-meta {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            font-size: 12px;
-            color: #888;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            border-radius: 5px;
-            color: white;
-            display: none;
-            z-index: 1000;
-            max-width: 300px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-        }
-        
-        .notification.success {
-            background-color: #28a745;
-        }
-        
-        .notification.error {
-            background-color: #dc3545;
-        }
-        
-        .notification.info {
-            background-color: #17a2b8;
-        }
-        
-        .sync-status {
-            text-align: center;
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #e9ecef;
-            border-radius: 5px;
-            font-size: 14px;
-            color: #666;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <h1>📚 Quote Manager with Server Sync</h1>
         
+        <!-- Notification Area -->
         <div id="notification" class="notification"></div>
         
+        <!-- Input Section -->
         <div class="input-section">
             <input type="text" id="quoteText" placeholder="Enter quote text..." required>
             <input type="text" id="quoteAuthor" placeholder="Enter author..." required>
@@ -168,19 +25,18 @@
             </div>
         </div>
         
+        <!-- Sync Status -->
         <div class="sync-status">
             <span id="syncStatus">Last sync: Never</span>
         </div>
         
+        <!-- Quotes List -->
         <h2>Quotes List:</h2>
-        <ul id="quotesList" class="quotes-list">
-            <!-- Quotes will be loaded here -->
-        </ul>
+        <ul id="quotesList" class="quotes-list"></ul>
     </div>
     
-    <!-- Import the server simulator first -->
+    <!-- Scripts in correct order -->
     <script src="server-simulator.js"></script>
-    <!-- Then import the main script -->
     <script src="script.js"></script>
 </body>
 </html>
