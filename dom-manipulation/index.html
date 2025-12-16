@@ -3,341 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Quote Generator with Server Sync</title>
+    <title>Quote Manager with Sync</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 1200px;
+            font-family: Arial, sans-serif;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f7fa;
+            background-color: #f5f5f5;
         }
         
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
-        }
-        
-        .sync-status-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #f8f9fa;
-            padding: 10px 20px;
-            border-bottom: 1px solid #dee2e6;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .sync-indicator {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .sync-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: #28a745;
-        }
-        
-        .sync-dot.syncing {
-            animation: pulse 1.5s infinite;
-            background-color: #ffc107;
-        }
-        
-        .sync-dot.error {
-            background-color: #dc3545;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .notification {
-            position: fixed;
-            top: 60px;
-            right: 20px;
-            background: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            border-left: 4px solid;
-            display: none;
-            z-index: 1001;
-            max-width: 300px;
-        }
-        
-        .notification.success {
-            border-color: #28a745;
-            background-color: #d4edda;
-        }
-        
-        .notification.warning {
-            border-color: #ffc107;
-            background-color: #fff3cd;
-        }
-        
-        .notification.error {
-            border-color: #dc3545;
-            background-color: #f8d7da;
-        }
-        
-        .conflict-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1002;
-        }
-        
-        .conflict-content {
-            background: white;
+        .container {
+            background-color: white;
             padding: 30px;
             border-radius: 10px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
-        .conflict-item {
-            border: 1px solid #dee2e6;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 5px;
-            background: #f8f9fa;
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
         }
         
-        .sync-controls {
+        .input-section {
             display: flex;
-            gap: 10px;
-            margin: 20px 0;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
             padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
         }
         
         button {
-            padding: 10px 20px;
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
+            font-size: 16px;
+            transition: background-color 0.3s;
         }
         
-        .btn-primary {
-            background: #007bff;
-            color: white;
+        button:hover {
+            background-color: #0056b3;
         }
         
-        .btn-primary:hover {
-            background: #0056b3;
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
         }
         
-        .btn-success {
-            background: #28a745;
-            color: white;
+        .sync-btn {
+            background-color: #28a745;
         }
         
-        .btn-success:hover {
-            background: #1e7e34;
+        .sync-btn:hover {
+            background-color: #1e7e34;
         }
         
-        .btn-warning {
-            background: #ffc107;
-            color: #212529;
+        .fetch-btn {
+            background-color: #17a2b8;
         }
         
-        .btn-warning:hover {
-            background: #e0a800;
+        .fetch-btn:hover {
+            background-color: #138496;
         }
         
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-        
-        .btn-danger:hover {
-            background: #bd2130;
+        .quotes-list {
+            list-style-type: none;
+            padding: 0;
         }
         
         .quote-item {
-            background: white;
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            border-left: 4px solid #667eea;
+            background-color: white;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .quote-text {
+            font-style: italic;
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .quote-author {
+            font-weight: bold;
+            color: #666;
+            text-align: right;
         }
         
         .quote-meta {
             display: flex;
             justify-content: space-between;
             margin-top: 10px;
-            font-size: 0.9em;
-            color: #6c757d;
+            font-size: 12px;
+            color: #888;
         }
         
-        .quote-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .version-badge {
-            background: #6c757d;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.8em;
-        }
-        
-        .local-badge {
-            background: #28a745;
-        }
-        
-        .server-badge {
-            background: #007bff;
-        }
-        
-        select, input {
-            padding: 10px;
-            border: 1px solid #ced4da;
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
             border-radius: 5px;
-            font-size: 1em;
+            color: white;
+            display: none;
+            z-index: 1000;
+            max-width: 300px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
         }
         
-        .filter-section {
-            margin: 20px 0;
+        .notification.success {
+            background-color: #28a745;
+        }
+        
+        .notification.error {
+            background-color: #dc3545;
+        }
+        
+        .notification.info {
+            background-color: #17a2b8;
+        }
+        
+        .sync-status {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #666;
         }
     </style>
 </head>
 <body>
-    <!-- Sync Status Bar -->
-    <div class="sync-status-bar">
-        <div class="sync-indicator">
-            <div class="sync-dot" id="syncDot"></div>
-            <span id="syncStatus">Connected</span>
+    <div class="container">
+        <h1>📚 Quote Manager with Server Sync</h1>
+        
+        <div id="notification" class="notification"></div>
+        
+        <div class="input-section">
+            <input type="text" id="quoteText" placeholder="Enter quote text..." required>
+            <input type="text" id="quoteAuthor" placeholder="Enter author..." required>
+            
+            <div class="button-group">
+                <button id="addQuoteBtn">Add Quote Locally</button>
+                <button id="syncBtn" class="sync-btn">Sync with Server</button>
+                <button id="fetchBtn" class="fetch-btn">Fetch from Server</button>
+            </div>
         </div>
-        <div>
-            Last sync: <span id="lastSyncTime">Never</span>
+        
+        <div class="sync-status">
+            <span id="syncStatus">Last sync: Never</span>
         </div>
+        
+        <h2>Quotes List:</h2>
+        <ul id="quotesList" class="quotes-list">
+            <!-- Quotes will be loaded here -->
+        </ul>
     </div>
     
-    <!-- Notifications -->
-    <div id="notification" class="notification"></div>
-    
-    <!-- Conflict Resolution Modal -->
-    <div class="conflict-modal" id="conflictModal">
-        <div class="conflict-content">
-            <h2>⚠️ Data Conflicts Detected</h2>
-            <p>We found differences between your local data and server data. Please review and choose which version to keep.</p>
-            <div id="conflictList"></div>
-            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
-                <button class="btn-warning" onclick="useLocalData()">Use Local Data</button>
-                <button class="btn-primary" onclick="useServerData()">Use Server Data</button>
-                <button class="btn-success" onclick="mergeData()">Merge Both</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Main Content -->
-    <div style="margin-top: 60px;">
-        <div class="header">
-            <h1>Dynamic Quote Generator</h1>
-            <p>Your quotes are synced with the server automatically!</p>
-        </div>
-        
-        <!-- Sync Controls -->
-        <div class="sync-controls">
-            <button class="btn-primary" onclick="manualSync()">🔄 Sync Now</button>
-            <button class="btn-warning" onclick="forceServerPull()">⬇️ Pull from Server</button>
-            <button class="btn-success" onclick="forceLocalPush()">⬆️ Push to Server</button>
-            <button class="btn-danger" onclick="checkForConflicts()">⚠️ Check Conflicts</button>
-        </div>
-        
-        <!-- Sync Settings -->
-        <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
-            <h3>Sync Settings</h3>
-            <div style="display: flex; gap: 20px; margin-top: 15px; align-items: center;">
-                <label>
-                    <input type="checkbox" id="autoSync" checked> Auto-sync every 30 seconds
-                </label>
-                <select id="conflictStrategy">
-                    <option value="server">Server wins</option>
-                    <option value="client">Client wins</option>
-                    <option value="merge">Merge both</option>
-                    <option value="ask">Ask me</option>
-                </select>
-            </div>
-        </div>
-        
-        <!-- Filter Section -->
-        <div class="filter-section">
-            <select id="categoryFilter" onchange="filterQuotes()">
-                <option value="all">All Categories</option>
-            </select>
-        </div>
-        
-        <!-- Add Quote Form -->
-        <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
-            <h3>Add New Quote</h3>
-            <div style="display: grid; gap: 15px; margin-top: 15px;">
-                <input type="text" id="newQuoteText" placeholder="Enter quote text...">
-                <input type="text" id="newQuoteCategory" placeholder="Enter category...">
-                <button class="btn-success" onclick="addQuote()">Add Quote</button>
-            </div>
-        </div>
-        
-        <!-- Quotes List -->
-        <h2>Your Quotes (<span id="quoteCount">0</span>)</h2>
-        <div id="quotesContainer">
-            <!-- Quotes will be displayed here -->
-        </div>
-        
-        <!-- Server Status -->
-        <div style="margin-top: 40px; padding: 20px; background: white; border-radius: 10px;">
-            <h3>Server Status</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
-                <div>
-                    <strong>Local Quotes:</strong> <span id="localCount">0</span>
-                </div>
-                <div>
-                    <strong>Server Quotes:</strong> <span id="serverCount">0</span>
-                </div>
-                <div>
-                    <strong>Last Sync:</strong> <span id="syncTimestamp">Never</span>
-                </div>
-                <div>
-                    <strong>Conflicts:</strong> <span id="conflictCount">0</span>
-                </div>
-            </div>
-        </div>
-    </div>
-    
+    <!-- Import the server simulator first -->
+    <script src="server-simulator.js"></script>
+    <!-- Then import the main script -->
     <script src="script.js"></script>
 </body>
 </html>
